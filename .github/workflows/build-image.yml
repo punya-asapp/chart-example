@@ -32,15 +32,12 @@ jobs:
 
     - name: Build image
       run: |
-        if [ docker pull $image_tag ]; then
+        if docker pull $image_tag; then
           echo "Image already exists, skipping"
           exit 0
         fi
 
-        docker build . -f ./docker/hello/Dockerfile -t temp_image
-
-        # Tag the temporary image
-        docker tag temp_image $image_tag
+        docker build . -f ./docker/hello/Dockerfile -t $image_tag
 
     - name: Publish image
       run: |
