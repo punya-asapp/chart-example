@@ -37,7 +37,7 @@ jobs:
           exit 0
         fi
 
-        docker build . -f ./docker/hello/Dockerfile -t $image_tag
+        DOCKER_BUILDKIT=1 docker build . -f ./docker/hello/Dockerfile -t $image_tag
 
     - name: Publish image
       run: |
