@@ -16,29 +16,37 @@ jobs:
           --username punya-asapp \
           --password ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build image
+    - name: Find src commit
       run: |
-        docker build . -f ./docker/hello/Dockerfile -t temp_image
-
-    - name: Tag and push
-      run: |
-        set -eo pipefail
-
         # Find the most recent commit that touched something outside helm-charts
         src_commit=$(git log -1 --pretty=format:%h :^helm-charts)
 
         # Describe it nicely if possible
         src_commit=$(git describe --tags --always $src_commit)
 
-        # Tag the temporary image
         app_version=git-$src_commit
+
+        echo "::set-env name=app_version::$app_version"
+
+    - name: Build image
+      run: |
         image_tag=docker.pkg.github.com/punya-asapp/chart-example/hello:$app_version
+
+        if [ docker pull $image_tag ]; then
+          echo "Image already exists, skipping"
+          exit 0
+        fi
+
+        docker build . -f ./docker/hello/Dockerfile -t temp_image
+
+        # Tag the temporary image
         docker tag temp_image $image_tag
 
         # Push the image
         docker push $image_tag
 
-        # Inject image tag into chart
+    - name: Inject image tag into chart
+      run: |
         rm -rf ./dist
         mkdir -p dist
         cp -r helm-charts dist/
