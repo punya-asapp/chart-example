@@ -1,0 +1,52 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Docker login
+      run: |
+        docker login docker.pkg.github.com \
+          --username punya-asapp \
+          --password ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build image
+      run: |
+        docker build . -f ./docker/hello/Dockerfile -t temp_image
+
+    - name: Tag and push
+      run: |
+        set -eo pipefail
+
+        # Find the most recent commit that touched something outside helm-charts
+        src_commit=$(git log -1 --pretty=format:%h :^helm-charts)
+
+        # Describe it nicely if possible
+        src_commit=$(git describe --tags --always $src_commit)
+
+        # Tag the temporary image
+        app_version=git-$src_commit
+        image_tag=docker.pkg.github.com/punya-asapp/chart-example/hello:$app_version
+        docker tag temp_image $image_tag
+
+        # Push the image
+        docker push $image_tag
+
+        # Inject image tag into chart
+        rm -rf ./dist
+        mkdir -p dist
+        cp -r helm-charts dist/
+        sed "s/REPLACE_ME_APP_VERSION/$app_version/g" --in-place="" dist/helm-charts/hello/Chart.yaml
+        tar -C dist/helm-charts -zcf dist/hello.tgz hello
+
+    - name: Archive charts
+      uses: actions/upload-artifact@v1
+      with:
+        name: chart
+        path: dist/hello.tgz
