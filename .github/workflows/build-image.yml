@@ -42,8 +42,13 @@ jobs:
         # Tag the temporary image
         docker tag temp_image $image_tag
 
-        # Push the image
-        docker push $image_tag
+    - name: Publish image
+      run: |
+        if [ $GITHUB_REF = refs/heads/master ]; then
+          docker push $image_tag
+        else
+          echo "Skipping publish step because we aren't on master"
+        fi
 
     - name: Inject image tag into chart
       run: |
