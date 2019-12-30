@@ -41,10 +41,10 @@ jobs:
 
     - name: Publish image
       run: |
-        if [ $GITHUB_REF = refs/heads/master ]; then
+        if [[ $GITHUB_REF == refs/heads/master || $GITHUB_REF == refs/tags/* ]]; then
           docker push $image_tag
         else
-          echo "Skipping publish step because we aren't on master"
+          echo "Skipping publish step because we aren't on master or a tag"
         fi
 
     - name: Inject image tag into chart
